@@ -407,8 +407,12 @@ function decorateErdEntities(blobs) {
     g.dataset.ccWired = "1";
     g.classList.add("erd-entity");
     const name = erdEntityName(g.id);
+    // tooltip: table name + dataset(s) on their own line (the pastel stroke
+    // colors are hard to tell apart) + the click hint
+    const ds = tableDatasets(name, blobs);
+    const dsLabel = ds.length ? ds.join(", ") : "—";
     const ttl = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    ttl.textContent = `${name} — click for columns`;
+    ttl.textContent = `${name}\ndataset: ${dsLabel}\nclick for columns`;
     g.appendChild(ttl);
     g.addEventListener("click", (ev) => {
       // svg-pan-zoom pans on drag; a real click (no drag) still fires here
