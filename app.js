@@ -385,6 +385,78 @@ async function renderErd(blobs) {
       zoomScaleSensitivity: 0.3,
     });
   }
+  // make entities clickable (→ table columns) and wire dataset-filter highlight
+  decorateErdEntities(blobs);
+  State._apply.erd = () => applyErdHighlight(blobs);
+  applyErdHighlight(blobs);
+}
+
+// entity group ids look like "entity-<table>-<index>"; table names use
+// underscores (no hyphens), so strip the prefix and trailing -<index>
+function erdEntityName(id) {
+  return id.replace(/^entity-/, "").replace(/-\d+$/, "");
+}
+
+// make each ER entity clickable: jump to its table's columns
+function decorateErdEntities(blobs) {
+  $$("#erd-svg-wrap g[id^='entity-']").forEach(g => {
+    if (g.dataset.ccWired) return;
+    g.dataset.ccWired = "1";
+    g.classList.add("erd-entity");
+    const name = erdEntityName(g.id);
+    const ttl = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    ttl.textContent = `${name} — click for columns`;
+    g.appendChild(ttl);
+    g.addEventListener("click", (ev) => {
+      // svg-pan-zoom pans on drag; a real click (no drag) still fires here
+      ev.stopPropagation();
+      showTableColumns(name);
+    });
+  });
+}
+
+// highlight entities (+ their edges) for the active dataset filter; dim the rest
+function applyErdHighlight(blobs) {
+  if (!$("#erd-svg-wrap svg")) return;
+  const active = State.filters.size > 0;
+  const dimmed = new Set();
+  $$("#erd-svg-wrap g[id^='entity-']").forEach(g => {
+    const ds = tableDatasets(erdEntityName(g.id), blobs);
+    const match = !active || ds.some(d => State.filters.has(d));
+    g.style.opacity = match ? "1" : "0.1";
+    g.style.transition = "opacity 0.15s";
+    if (!match) dimmed.add(g.id);
+  });
+  // relationship edge ids embed both entity ids: id_entity-<a>-N_entity-<b>-N_..
+  $$("#erd-svg-wrap path[id^='id_entity-']").forEach(p => {
+    const touches = [...dimmed].some(eid => p.id.includes(eid));
+    p.style.opacity = (active && touches) ? "0.05" : "";
+  });
+  // FK column labels: dim all when filtering (precise edge mapping not needed)
+  $$("#erd-svg-wrap .edgeLabel, #erd-svg-wrap .edgeLabels").forEach(el => {
+    el.style.opacity = active ? "0.12" : "";
+  });
+}
+
+// open a table's columns: switch to Tables tab, filter to it, expand + scroll
+function showTableColumns(name) {
+  State.activeTab = "tables";
+  setActiveTabUI("tables");
+  renderActiveTab();
+  const input = $("#tables-filter");
+  if (input) { input.value = name; input.dispatchEvent(new Event("input")); }
+  requestAnimationFrame(() => {
+    const sel = `#tables-list .card[data-table-name="${(window.CSS && CSS.escape) ? CSS.escape(name) : name}"]`;
+    const card = document.querySelector(sel);
+    if (card) {
+      const d = card.querySelector("details");
+      if (d) d.open = true;
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+      card.classList.add("card-flash");
+      setTimeout(() => card.classList.remove("card-flash"), 1500);
+    }
+  });
+  syncHash();
 }
 
 // ─── Tables ─────────────────────────────────────────────────────────────

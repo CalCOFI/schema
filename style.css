@@ -284,6 +284,17 @@ main#panel { padding: 1.0rem 1.5rem 4rem; }
 .erd-btn:hover { background: var(--panel); }
 .erd-hint { font-size: 0.82rem; }
 
+/* ── ERD interactivity (clickable entities + filter highlight) ───────────── */
+#erd-svg-wrap g.erd-entity { cursor: pointer; }
+#erd-svg-wrap g.erd-entity:hover rect,
+#erd-svg-wrap g.erd-entity:hover path { stroke-width: 3px; filter: brightness(1.2); }
+/* highlight a table card briefly when arrived-at from an ERD entity click */
+.card.card-flash { animation: cardflash 1.5s ease-out; }
+@keyframes cardflash {
+  0%   { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 /* ── ERD legend (dataset → color swatch) ─────────────────────────────────── */
 .erd-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 0.7rem; margin-left: auto; }
 .erd-legend-item {
